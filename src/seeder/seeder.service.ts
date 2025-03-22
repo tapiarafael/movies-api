@@ -49,6 +49,15 @@ export class SeederService implements OnModuleInit {
 
     const producerRecords = await this.insertProducers(producers);
 
+    const movie = await this.prismaService.movie.findFirst({
+      where: { title, releaseYear: year },
+    });
+
+    if (movie) {
+      this.logger.debug(`Movie "${title}" (${year}) already exists`);
+      return;
+    }
+
     await this.prismaService.movie.create({
       data: {
         releaseYear: year,
@@ -62,6 +71,7 @@ export class SeederService implements OnModuleInit {
         },
       },
     });
+
     this.logger.debug(`Inserted movie: "${title}" (${year})`);
   }
 
