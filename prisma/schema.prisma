@@ -15,29 +15,27 @@ datasource db {
 
 model Studio {
   id        Int      @id @default(autoincrement())
-  name      String
+  name      String   @unique
+  movies    Movie[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  Movies    Movie[]
 }
 
 model Producer {
   id        Int      @id @default(autoincrement())
-  name      String
+  name      String   @unique
+  movies    Movie[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  Movies    Movie[]
 }
 
 model Movie {
-  id          Int      @id @default(autoincrement())
+  id          Int        @id @default(autoincrement())
   title       String
   releaseYear Int
   winner      Boolean
-  studioId    Int
-  studio      Studio   @relation(fields: [studioId], references: [id])
-  producerId  Int
-  producer    Producer @relation(fields: [producerId], references: [id])
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  producers   Producer[]
+  studios     Studio[]
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
 }
