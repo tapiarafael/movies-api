@@ -10,5 +10,32 @@ generator client {
 
 datasource db {
   provider = "sqlite"
-  url      = "file:./dev.db" // env("DATABASE_URL")
+  url      = env("DATABASE_URL")
+}
+
+model Studio {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  movies    Movie[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Producer {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  movies    Movie[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Movie {
+  id          Int        @id @default(autoincrement())
+  title       String
+  releaseYear Int
+  winner      Boolean
+  producers   Producer[]
+  studios     Studio[]
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
 }
