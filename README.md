@@ -1,4 +1,4 @@
-## Description
+## 📜 Description
 
 API developed with NestJS, TypeORM, and SQLite that imports movie data and provides an endpoint to identify producers with the shortest and longest intervals between award wins.
 
@@ -99,7 +99,3 @@ Check out the tools used in this project:
 
 - [LinkedIn](https://www.linkedin.com/in/rafael-tapia)
 - [Email](mailto:rafaelsilvatapia@gmail.com)
-
-```
-
-```
