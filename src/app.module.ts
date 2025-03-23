@@ -3,12 +3,12 @@ import { SeederModule } from './seeder/seeder.module';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Movie, Producer, Studio } from './entities';
+import { AwardsModule } from './awards/awards.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: process.env.NDOE_ENV === 'test' ? '.env.test' : '.env',
     }),
     TypeOrmModule.forRoot({
       type: 'sqlite',
@@ -17,6 +17,7 @@ import { Movie, Producer, Studio } from './entities';
       synchronize: true,
     }),
     SeederModule,
+    AwardsModule,
   ],
   controllers: [],
   providers: [],
