@@ -1,8 +1,10 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
-import { PrismaService } from 'src/prisma/prisma.service';
 import * as path from 'path';
 import { createReadStream } from 'fs';
 import * as csv from 'csv-parser';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Movie, Producer, Studio } from 'src/entities';
+import { Repository } from 'typeorm';
 
 interface MovieCsvRow {
   year: string;
@@ -15,7 +17,15 @@ interface MovieCsvRow {
 @Injectable()
 export class SeederService implements OnModuleInit {
   private readonly logger = new Logger(SeederService.name);
-  constructor(private readonly prismaService: PrismaService) {}
+
+  constructor(
+    @InjectRepository(Movie)
+    private readonly movieRepository: Repository<Movie>,
+    @InjectRepository(Producer)
+    private readonly producerRepository: Repository<Producer>,
+    @InjectRepository(Studio)
+    private readonly studioRepository: Repository<Studio>,
+  ) {}
 
   async onModuleInit() {
     const filePath = path.join(
@@ -49,28 +59,15 @@ export class SeederService implements OnModuleInit {
 
     const producerRecords = await this.insertProducers(producers);
 
-    const movie = await this.prismaService.movie.findFirst({
-      where: { title, releaseYear: year },
+    const movie = this.movieRepository.create({
+      releaseYear: year,
+      title,
+      winner,
+      studios: studioRecords,
+      producers: producerRecords,
     });
 
-    if (movie) {
-      this.logger.debug(`Movie "${title}" (${year}) already exists`);
-      return;
-    }
-
-    await this.prismaService.movie.create({
-      data: {
-        releaseYear: year,
-        title,
-        winner,
-        studios: {
-          connect: studioRecords.map((s) => ({ id: s.id })),
-        },
-        producers: {
-          connect: producerRecords.map((p) => ({ id: p.id })),
-        },
-      },
-    });
+    await this.movieRepository.save(movie);
 
     this.logger.debug(`Inserted movie: "${title}" (${year})`);
   }
@@ -92,25 +89,35 @@ export class SeederService implements OnModuleInit {
 
   private async insertProducers(producers: string[]) {
     return Promise.all(
-      producers.map((producer) =>
-        this.prismaService.producer.upsert({
-          where: { name: producer },
-          update: {},
-          create: { name: producer },
-        }),
-      ),
+      producers.map(async (name) => {
+        const producerExists = await this.producerRepository.findOne({
+          where: { name },
+        });
+
+        if (producerExists) {
+          return producerExists;
+        }
+
+        const createdProducer = this.producerRepository.create({ name });
+        return this.producerRepository.save(createdProducer);
+      }),
     );
   }
 
   private async insertStudios(studios: string[]) {
     return Promise.all(
-      studios.map((studio) =>
-        this.prismaService.studio.upsert({
-          where: { name: studio },
-          update: {},
-          create: { name: studio },
-        }),
-      ),
+      studios.map(async (name) => {
+        const studioExists = await this.studioRepository.findOne({
+          where: { name },
+        });
+
+        if (studioExists) {
+          return studioExists;
+        }
+
+        const createdStudio = this.studioRepository.create({ name });
+        return this.studioRepository.save(createdStudio);
+      }),
     );
   }
 }

@@ -1,9 +1,10 @@
 import { Module } from '@nestjs/common';
 import { SeederService } from './seeder.service';
-import { PrismaModule } from 'src/prisma/prisma.module';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { Movie, Producer, Studio } from 'src/entities';
 
 @Module({
   providers: [SeederService],
-  imports: [PrismaModule],
+  imports: [TypeOrmModule.forFeature([Movie, Producer, Studio])],
 })
 export class SeederModule {}
