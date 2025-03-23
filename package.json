@@ -1,8 +1,8 @@
 {
   "name": "movies-api",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "description": "",
-  "author": "",
+  "author": "Rafael Tapia",
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
