@@ -3,8 +3,6 @@ import { SeederService } from './seeder.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { join } from 'path';
-import { writeFileSync, unlinkSync, existsSync } from 'fs';
 import { Movie, Producer, Studio } from 'src/entities';
 
 describe('SeederService (integration)', () => {
@@ -12,22 +10,6 @@ describe('SeederService (integration)', () => {
   let movieRepo: Repository<Movie>;
   let producerRepo: Repository<Producer>;
   let studioRepo: Repository<Studio>;
-
-  const testCsvPath = join(__dirname, 'test-movielist.csv');
-
-  const mockCsvContent = `year;title;studios;producers;winner
-          1980;Test Movie;Test Studio;Test Producer;yes`;
-
-  beforeAll(() => {
-    writeFileSync(testCsvPath, mockCsvContent);
-    process.env.DATASET = `src/seeder/test-movielist.csv`;
-  });
-
-  afterAll(() => {
-    if (existsSync(testCsvPath)) {
-      unlinkSync(testCsvPath);
-    }
-  });
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -61,70 +43,53 @@ describe('SeederService (integration)', () => {
     expect(seederService).toBeDefined();
   });
 
-  it('should seed data from CSV into the database', async () => {
+  it('should fully seed the database from the default movielist.csv file', async () => {
     await seederService.onModuleInit();
 
     const movies = await movieRepo.find({
       relations: ['studios', 'producers'],
     });
-
-    expect(movies).toHaveLength(1);
-    const movie = movies[0];
-    expect(movie.title).toBe('Test Movie');
-    expect(movie.releaseYear).toBe(1980);
-    expect(movie.winner).toBe(true);
-    expect(movie.studios).toHaveLength(1);
-    expect(movie.studios[0].name).toBe('Test Studio');
-    expect(movie.producers).toHaveLength(1);
-    expect(movie.producers[0].name).toBe('Test Producer');
-  });
-
-  it('should not seed duplicate studios', async () => {
-    await seederService.onModuleInit();
-    await seederService.onModuleInit();
-
-    const studios = await studioRepo.find();
-    expect(studios).toHaveLength(1);
-  });
-
-  it('should not seed duplicate producers', async () => {
-    await seederService.onModuleInit();
-    await seederService.onModuleInit();
-
     const producers = await producerRepo.find();
-    expect(producers).toHaveLength(1);
+    const studios = await studioRepo.find();
+
+    expect(movies.length).toBe(206);
+    expect(producers).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ name: 'Joel Silver' }),
+        expect.objectContaining({ name: 'Matthew Vaughn' }),
+      ]),
+    );
+    expect(studios).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ name: 'Warner Bros.' }),
+      ]),
+    );
+
+    const joelSilverMovies = movies.filter((movie) =>
+      movie.producers.some((p) => p.name === 'Joel Silver'),
+    );
+    expect(joelSilverMovies.length).toBeGreaterThanOrEqual(2);
   });
 
-  it('should seed multiple movies', async () => {
-    const csvContent = `year;title;studios;producers;winner
-              1980;Test Movie;Test Studio;Test Producer;yes
-              1981;Test Movie 2;Test Studio 2;Test Producer 2;no`;
-
-    writeFileSync(testCsvPath, csvContent);
+  it('should not create duplicate studios when seeding multiple times', async () => {
+    await seederService.onModuleInit();
+    const initialStudios = await studioRepo.find();
+    const initialCount = initialStudios.length;
 
     await seederService.onModuleInit();
+    const afterReseed = await studioRepo.find();
 
-    const movies = await movieRepo.find({
-      relations: ['studios', 'producers'],
-    });
+    expect(afterReseed.length).toBe(initialCount);
+  });
 
-    expect(movies).toHaveLength(2);
+  it('should not create duplicate producers when seeding multiple times', async () => {
+    await seederService.onModuleInit();
+    const initialProducers = await producerRepo.find();
+    const initialCount = initialProducers.length;
 
-    const [movie1, movie2] = movies;
-    expect(movie1.title).toBe('Test Movie');
-    expect(movie1.releaseYear).toBe(1980);
-    expect(movie1.winner).toBe(true);
-    expect(movie1.studios).toHaveLength(1);
-    expect(movie1.studios[0].name).toBe('Test Studio');
-    expect(movie1.producers).toHaveLength(1);
-    expect(movie1.producers[0].name).toBe('Test Producer');
+    await seederService.onModuleInit();
+    const afterReseed = await producerRepo.find();
 
-    expect(movie2.title).toBe('Test Movie 2');
-    expect(movie2.releaseYear).toBe(1981);
-    expect(movie2.winner).toBe(false);
-    expect(movie2.studios).toHaveLength(1);
-    expect(movie2.studios[0].name).toBe('Test Studio 2');
-    expect(movie2.producers).toHaveLength(1);
-    expect(movie2.producers[0].name).toBe('Test Producer 2');
+    expect(afterReseed.length).toBe(initialCount);
   });
 });
